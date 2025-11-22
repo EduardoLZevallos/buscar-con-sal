@@ -22,9 +22,9 @@ def extract_text_from_html(html_file):
         text = soup.get_text()
         # Clean up whitespace
         text = re.sub(r'\s+', ' ', text).strip()
-        # Limit to first 5000 chars for indexing (optimized for performance)
-        # This covers most article content while keeping index size manageable
-        return text[:5000]
+        # Limit to first 3000 chars for indexing (optimized for performance)
+        # 3000 chars (~500 words) is sufficient for search while keeping file size small
+        return text[:3000]
     except Exception as e:
         print(f"Error processing {html_file}: {e}")
         return ""
