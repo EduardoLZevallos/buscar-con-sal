@@ -274,8 +274,12 @@
             }
             
             // Show accurate count - if totalCount provided, show "X of Y", otherwise just count
-            if (totalCount !== null && totalCount > articlesToShow.length) {
-                countEl.textContent = `Showing ${articlesToShow.length} of ${totalCount} article${totalCount !== 1 ? 's' : ''}`;
+            if (totalCount !== null && totalCount >= articlesToShow.length) {
+                if (totalCount > articlesToShow.length) {
+                    countEl.textContent = `Showing ${articlesToShow.length} of ${totalCount} article${totalCount !== 1 ? 's' : ''}`;
+                } else {
+                    countEl.textContent = `${totalCount} article${totalCount !== 1 ? 's' : ''} found`;
+                }
             } else {
                 countEl.textContent = `${articlesToShow.length} article${articlesToShow.length !== 1 ? 's' : ''} found`;
             }
