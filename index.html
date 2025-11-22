@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tortilla con Sal - Articles</title>
+    <title>Buscar Con Sal</title>
     <script src="https://unpkg.com/lunr@2.3.9/lunr.min.js"></script>
     <style>
         body {
@@ -26,7 +26,7 @@
         }
         #search-input:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: #8B4513;
         }
         .results-count {
             margin-top: 10px;
@@ -53,11 +53,11 @@
             text-decoration: none;
         }
         .article-item h3 a:hover {
-            color: #3498db;
+            color: #8B4513;
             text-decoration: underline;
         }
         .article-link {
-            color: #3498db;
+            color: #8B4513;
             text-decoration: none;
             font-weight: 500;
         }
@@ -84,7 +84,7 @@
         }
         .spinner {
             border: 5px solid #f3f3f3;
-            border-top: 5px solid #3498db;
+            border-top: 5px solid #8B4513;
             border-radius: 50%;
             width: 60px;
             height: 60px;
@@ -105,20 +105,23 @@
         .source-banner {
             background-color: #8B4513;
             color: #F5DEB3;
-            padding: 12px 20px;
+            padding: 16px 20px;
             text-align: center;
-            margin-bottom: 20px;
-            border-radius: 4px;
+            margin-bottom: 30px;
+            border-radius: 6px;
             font-family: Georgia, serif;
             font-style: italic;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 2px solid #654321;
         }
         .source-banner a {
-            color: #F5DEB3;
+            color: #FFF8DC;
             text-decoration: underline;
-            font-weight: 500;
+            font-weight: 600;
         }
         .source-banner a:hover {
-            color: #FFF8DC;
+            color: #FFFFFF;
         }
     </style>
 </head>
@@ -127,7 +130,7 @@
         All articles are from <a href="https://www.tortillaconsal.com/" target="_blank" rel="noopener"><em>tortilla con sal</em></a>
     </div>
     
-    <h1>Tortilla con Sal - Articles</h1>
+    <h1>Buscar Con Sal</h1>
     
     <div class="search-container">
         <input type="text" id="search-input" placeholder="Search articles by title or content...">
