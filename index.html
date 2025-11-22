@@ -160,6 +160,7 @@
     <script>
         let idx;
         let articles = [];
+        let sortedArticles = []; // Cache sorted articles for performance
         let indexBuilt = false;
         
         // Show loading spinner immediately
@@ -197,8 +198,8 @@
                 loadingSpinner.style.display = 'none';
                 articleList.style.display = 'grid';
                 
-                // Sort articles by date (earliest first), then display first 50
-                const sortedArticles = [...articles].sort((a, b) => {
+                // Sort articles by date (earliest first) once and cache it
+                sortedArticles = [...articles].sort((a, b) => {
                     const dateA = a.date || '9999-99-99'; // Put articles without dates at the end
                     const dateB = b.date || '9999-99-99';
                     return dateA.localeCompare(dateB);
@@ -235,12 +236,7 @@
             }
             
             if (query.length === 0) {
-                // Sort articles by date (earliest first), then display first 50
-                const sortedArticles = [...articles].sort((a, b) => {
-                    const dateA = a.date || '9999-99-99'; // Put articles without dates at the end
-                    const dateB = b.date || '9999-99-99';
-                    return dateA.localeCompare(dateB);
-                });
+                // Use cached sorted articles (sorted once on load)
                 displayArticles(sortedArticles.slice(0, 50), '', articles.length);
                 return;
             }
