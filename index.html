@@ -197,8 +197,13 @@
                 loadingSpinner.style.display = 'none';
                 articleList.style.display = 'grid';
                 
-                // Display first 50 articles initially (for performance)
-                displayArticles(articles.slice(0, 50), '', articles.length);
+                // Sort articles by date (earliest first), then display first 50
+                const sortedArticles = [...articles].sort((a, b) => {
+                    const dateA = a.date || '9999-99-99'; // Put articles without dates at the end
+                    const dateB = b.date || '9999-99-99';
+                    return dateA.localeCompare(dateB);
+                });
+                displayArticles(sortedArticles.slice(0, 50), '', articles.length);
             })
             .catch(error => {
                 console.error('Error loading articles:', error);
@@ -230,7 +235,13 @@
             }
             
             if (query.length === 0) {
-                displayArticles(articles.slice(0, 50), '', articles.length); // Show first 50 initially
+                // Sort articles by date (earliest first), then display first 50
+                const sortedArticles = [...articles].sort((a, b) => {
+                    const dateA = a.date || '9999-99-99'; // Put articles without dates at the end
+                    const dateB = b.date || '9999-99-99';
+                    return dateA.localeCompare(dateB);
+                });
+                displayArticles(sortedArticles.slice(0, 50), '', articles.length);
                 return;
             }
             
@@ -307,6 +318,21 @@
             const tempDiv = document.createElement('div');
             
             tempDiv.innerHTML = articlesToDisplay.map(article => {
+                // Format date for display
+                let dateDisplay = '';
+                if (article.date) {
+                    try {
+                        const dateObj = new Date(article.date + 'T00:00:00');
+                        dateDisplay = dateObj.toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        });
+                    } catch (e) {
+                        dateDisplay = article.date; // Fallback to raw date
+                    }
+                }
+                
                 // Only show content snippet if searching (optimize)
                 let contentSnippet = '';
                 if (searchQuery && article.content && searchQuery.length >= 3) {
@@ -328,6 +354,7 @@
                 return `
                 <div class="article-item">
                     <h3><a href="${article.path}">${highlightText(article.title, searchQuery)}</a></h3>
+                    ${dateDisplay ? `<div class="article-date">${dateDisplay}</div>` : ''}
                     ${contentSnippet}
                     <p><a href="${article.path}" class="article-link">Read article →</a></p>
                 </div>

@@ -49,6 +49,24 @@ def extract_title_from_html(html_file):
     except Exception:
         return Path(html_file).stem.replace('_', ' ').replace('-', ' ')
 
+def extract_date_from_html(html_file):
+    """Extract date from HTML file using schema:dateCreated"""
+    try:
+        with open(html_file, 'r', encoding='utf-8', errors='ignore') as f:
+            soup = BeautifulSoup(f.read(), 'html.parser')
+        
+        # Look for span with property="schema:dateCreated"
+        date_span = soup.find('span', {'property': 'schema:dateCreated'})
+        if date_span and date_span.get('content'):
+            # Extract ISO 8601 date: 2022-06-04T23:37:23+00:00
+            date_str = date_span.get('content')
+            # Return just the date part (YYYY-MM-DD) for sorting
+            return date_str.split('T')[0] if 'T' in date_str else date_str
+        
+        return None
+    except Exception:
+        return None
+
 def main():
     articles_dir = Path('articles')
     articles = []
@@ -63,12 +81,14 @@ def main():
     for html_file in html_files:
         title = extract_title_from_html(html_file)
         content = extract_text_from_html(html_file)
+        date = extract_date_from_html(html_file)
         path = f"articles/{html_file.name}"
         
         articles.append({
             'title': title,
             'content': content,
-            'path': path
+            'path': path,
+            'date': date or ''  # Use empty string if no date found
         })
         
         if len(articles) % 100 == 0:
