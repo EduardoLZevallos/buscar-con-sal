@@ -96,11 +96,14 @@
             .then(data => {
                 articles = data;
                 
-                // Build Lunr index
+                // Build Lunr index with proper tokenization
                 idx = lunr(function() {
                     this.ref('id');
                     this.field('title', { boost: 10 });
                     this.field('content');
+                    
+                    // Use a custom tokenizer that preserves words better
+                    this.tokenizer = lunr.tokenizer;
                     
                     articles.forEach((article, index) => {
                         this.add({
@@ -132,12 +135,13 @@
             // Search using Lunr with wildcard support for partial matching
             let results = [];
             
-            // Try wildcard search first (for partial word matching like "Vene" -> "Venezuela")
+            // Lunr.js supports wildcards natively - try multiple approaches
+            // Method 1: Wildcard at end (for prefix matching like "Vene" -> "Venezuela")
             const wildcardQuery = query + '*';
             try {
                 results = idx.search(wildcardQuery);
             } catch (e) {
-                // Wildcard search failed, try exact match
+                // If wildcard fails, try exact match
                 try {
                     results = idx.search(query);
                 } catch (e2) {
@@ -145,7 +149,18 @@
                 }
             }
             
-            // If no results with wildcard, try exact match
+            // Method 2: If no results, try with wildcard on each word
+            if (results.length === 0 && query.includes(' ')) {
+                const words = query.split(' ');
+                const wildcardWords = words.map(w => w + '*').join(' ');
+                try {
+                    results = idx.search(wildcardWords);
+                } catch (e) {
+                    // Ignore
+                }
+            }
+            
+            // Method 3: Fallback to exact match
             if (results.length === 0) {
                 try {
                     results = idx.search(query);
@@ -154,8 +169,23 @@
                 }
             }
             
+            // Method 4: If still no results, do a simple text filter as last resort
+            // This ensures partial matching works even if Lunr wildcards don't
+            if (results.length === 0) {
+                const queryLower = query.toLowerCase();
+                const filtered = articles.filter(article => 
+                    article.title.toLowerCase().includes(queryLower) ||
+                    article.content.toLowerCase().includes(queryLower)
+                );
+                // Convert to Lunr result format for consistency
+                results = filtered.map((article) => ({
+                    ref: articles.indexOf(article).toString(),
+                    score: 1.0
+                }));
+            }
+            
             const resultIds = results.map(result => parseInt(result.ref));
-            const filteredArticles = resultIds.map(id => articles[id]);
+            const filteredArticles = resultIds.map(id => articles[id]).filter(a => a !== undefined);
             
             displayArticles(filteredArticles, query);
         });
