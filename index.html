@@ -198,11 +198,11 @@
                 loadingSpinner.style.display = 'none';
                 articleList.style.display = 'grid';
                 
-                // Sort articles by date (earliest first) once and cache it
+                // Sort articles by date (latest first) once and cache it
                 sortedArticles = [...articles].sort((a, b) => {
-                    const dateA = a.date || '9999-99-99'; // Put articles without dates at the end
-                    const dateB = b.date || '9999-99-99';
-                    return dateA.localeCompare(dateB);
+                    const dateA = a.date || '0000-00-00'; // Put articles without dates at the end
+                    const dateB = b.date || '0000-00-00';
+                    return dateB.localeCompare(dateA); // Reverse order: latest first
                 });
                 displayArticles(sortedArticles.slice(0, 50), '', articles.length);
             })
