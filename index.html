@@ -84,11 +84,14 @@
         <div class="results-count" id="results-count"></div>
     </div>
     
-    <div id="article-list" class="article-list"></div>
+    <div id="article-list" class="article-list">
+        <p style="text-align: center; color: #666;">Loading articles...</p>
+    </div>
 
     <script>
         let idx;
         let articles = [];
+        let indexBuilt = false;
         
         // Load the article index
         fetch('articles-index.json')
@@ -96,14 +99,12 @@
             .then(data => {
                 articles = data;
                 
-                // Build Lunr index with proper tokenization
+                // Build Lunr index (optimized - build once, reuse)
+                const startTime = performance.now();
                 idx = lunr(function() {
                     this.ref('id');
                     this.field('title', { boost: 10 });
                     this.field('content');
-                    
-                    // Use a custom tokenizer that preserves words better
-                    this.tokenizer = lunr.tokenizer;
                     
                     articles.forEach((article, index) => {
                         this.add({
@@ -113,6 +114,9 @@
                         });
                     });
                 });
+                indexBuilt = true;
+                const buildTime = performance.now() - startTime;
+                console.log(`Index built in ${buildTime.toFixed(2)}ms`);
                 
                 // Display first 50 articles initially (for performance)
                 displayArticles(articles.slice(0, 50));
@@ -138,36 +142,37 @@
         
         // Optimized search function
         function performSearch(query) {
+            if (!indexBuilt) {
+                // Wait for index to be built
+                setTimeout(() => performSearch(query), 100);
+                return;
+            }
+            
             if (query.length === 0) {
                 displayArticles(articles.slice(0, 50)); // Show first 50 initially
                 return;
             }
             
+            const startTime = performance.now();
             let results = [];
             const queryLower = query.toLowerCase();
             
-            // Optimized: Try wildcard first, then fallback to text search
+            // Optimized: Try wildcard first (fastest), then fallback to text search
             const wildcardQuery = query + '*';
             try {
                 results = idx.search(wildcardQuery);
             } catch (e) {
-                // If wildcard fails, use fast text filter immediately
-                const filtered = articles.filter(article => 
-                    article.title.toLowerCase().includes(queryLower) ||
-                    article.content.toLowerCase().includes(queryLower)
-                );
-                results = filtered.map((article) => ({
-                    ref: articles.indexOf(article).toString(),
-                    score: 1.0
-                }));
+                // Wildcard failed, will use text filter
             }
             
-            // If no results from wildcard, try text filter
+            // If no results from wildcard, use fast text filter
             if (results.length === 0) {
-                const filtered = articles.filter(article => 
-                    article.title.toLowerCase().includes(queryLower) ||
-                    article.content.toLowerCase().includes(queryLower)
-                );
+                // Pre-compute lowercase for performance
+                const filtered = articles.filter(article => {
+                    const titleLower = article.title.toLowerCase();
+                    const contentLower = article.content.toLowerCase();
+                    return titleLower.includes(queryLower) || contentLower.includes(queryLower);
+                });
                 results = filtered.map((article) => ({
                     ref: articles.indexOf(article).toString(),
                     score: 1.0
@@ -176,6 +181,9 @@
             
             const resultIds = results.map(result => parseInt(result.ref));
             const filteredArticles = resultIds.map(id => articles[id]).filter(a => a !== undefined);
+            
+            const searchTime = performance.now() - startTime;
+            console.log(`Search completed in ${searchTime.toFixed(2)}ms`);
             
             displayArticles(filteredArticles, query);
         }

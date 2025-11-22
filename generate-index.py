@@ -22,8 +22,9 @@ def extract_text_from_html(html_file):
         text = soup.get_text()
         # Clean up whitespace
         text = re.sub(r'\s+', ' ', text).strip()
-        # Limit to first 10000 chars for indexing (increased for better content search)
-        return text[:10000]
+        # Limit to first 5000 chars for indexing (optimized for performance)
+        # This covers most article content while keeping index size manageable
+        return text[:5000]
     except Exception as e:
         print(f"Error processing {html_file}: {e}")
         return ""
@@ -73,9 +74,9 @@ def main():
         if len(articles) % 100 == 0:
             print(f"  Processed {len(articles)}/{len(html_files)} files...")
     
-    # Save index
+    # Save index (compact JSON for smaller file size)
     with open('articles-index.json', 'w', encoding='utf-8') as f:
-        json.dump(articles, f, indent=2, ensure_ascii=False)
+        json.dump(articles, f, separators=(',', ':'), ensure_ascii=False)
     
     print(f"\n✓ Generated articles-index.json with {len(articles)} articles")
 
