@@ -114,8 +114,8 @@
                     });
                 });
                 
-                // Display all articles initially
-                displayArticles(articles);
+                // Display first 50 articles initially (for performance)
+                displayArticles(articles.slice(0, 50));
             })
             .catch(error => {
                 console.error('Error loading articles:', error);
@@ -123,61 +123,51 @@
                     '<p>Error loading articles. Make sure articles-index.json exists. Run generate-index.py first.</p>';
             });
         
-        // Search functionality
-        document.getElementById('search-input').addEventListener('input', function(e) {
-            const query = e.target.value.trim();
-            
+        // Debounce function for performance
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Optimized search function
+        function performSearch(query) {
             if (query.length === 0) {
-                displayArticles(articles);
+                displayArticles(articles.slice(0, 50)); // Show first 50 initially
                 return;
             }
             
-            // Search using Lunr with wildcard support for partial matching
             let results = [];
+            const queryLower = query.toLowerCase();
             
-            // Lunr.js supports wildcards natively - try multiple approaches
-            // Method 1: Wildcard at end (for prefix matching like "Vene" -> "Venezuela")
+            // Optimized: Try wildcard first, then fallback to text search
             const wildcardQuery = query + '*';
             try {
                 results = idx.search(wildcardQuery);
             } catch (e) {
-                // If wildcard fails, try exact match
-                try {
-                    results = idx.search(query);
-                } catch (e2) {
-                    results = [];
-                }
-            }
-            
-            // Method 2: If no results, try with wildcard on each word
-            if (results.length === 0 && query.includes(' ')) {
-                const words = query.split(' ');
-                const wildcardWords = words.map(w => w + '*').join(' ');
-                try {
-                    results = idx.search(wildcardWords);
-                } catch (e) {
-                    // Ignore
-                }
-            }
-            
-            // Method 3: Fallback to exact match
-            if (results.length === 0) {
-                try {
-                    results = idx.search(query);
-                } catch (e) {
-                    results = [];
-                }
-            }
-            
-            // Method 4: If still no results, do a simple text filter as last resort
-            // This ensures partial matching works even if Lunr wildcards don't
-            if (results.length === 0) {
-                const queryLower = query.toLowerCase();
+                // If wildcard fails, use fast text filter immediately
                 const filtered = articles.filter(article => 
                     article.title.toLowerCase().includes(queryLower) ||
                     article.content.toLowerCase().includes(queryLower)
                 );
-                // Convert to Lunr result format for consistency
+                results = filtered.map((article) => ({
+                    ref: articles.indexOf(article).toString(),
+                    score: 1.0
+                }));
+            }
+            
+            // If no results from wildcard, try text filter
+            if (results.length === 0) {
+                const filtered = articles.filter(article => 
+                    article.title.toLowerCase().includes(queryLower) ||
+                    article.content.toLowerCase().includes(queryLower)
+                );
                 results = filtered.map((article) => ({
                     ref: articles.indexOf(article).toString(),
                     score: 1.0
@@ -188,6 +178,13 @@
             const filteredArticles = resultIds.map(id => articles[id]).filter(a => a !== undefined);
             
             displayArticles(filteredArticles, query);
+        }
+        
+        // Search functionality with debouncing (300ms delay)
+        const debouncedSearch = debounce(performSearch, 300);
+        document.getElementById('search-input').addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            debouncedSearch(query);
         });
         
         function displayArticles(articlesToShow, searchQuery = '') {
@@ -202,18 +199,27 @@
             
             countEl.textContent = `${articlesToShow.length} article${articlesToShow.length !== 1 ? 's' : ''} found`;
             
-            container.innerHTML = articlesToShow.map(article => {
-                // Show content snippet if searching
+            // Limit display to first 100 results for performance
+            const displayLimit = 100;
+            const articlesToDisplay = articlesToShow.slice(0, displayLimit);
+            const hasMore = articlesToShow.length > displayLimit;
+            
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
+            const tempDiv = document.createElement('div');
+            
+            tempDiv.innerHTML = articlesToDisplay.map(article => {
+                // Only show content snippet if searching (optimize)
                 let contentSnippet = '';
-                if (searchQuery && article.content) {
+                if (searchQuery && article.content && searchQuery.length >= 3) {
                     const queryLower = searchQuery.toLowerCase();
                     const contentLower = article.content.toLowerCase();
                     const matchIndex = contentLower.indexOf(queryLower);
                     
                     if (matchIndex !== -1) {
-                        // Get snippet around the match (100 chars before and after)
-                        const start = Math.max(0, matchIndex - 100);
-                        const end = Math.min(article.content.length, matchIndex + searchQuery.length + 100);
+                        // Get snippet around the match (80 chars before and after for performance)
+                        const start = Math.max(0, matchIndex - 80);
+                        const end = Math.min(article.content.length, matchIndex + searchQuery.length + 80);
                         let snippet = article.content.substring(start, end);
                         if (start > 0) snippet = '...' + snippet;
                         if (end < article.content.length) snippet = snippet + '...';
@@ -229,6 +235,12 @@
                 </div>
             `;
             }).join('');
+            
+            if (hasMore) {
+                tempDiv.innerHTML += `<p style="text-align: center; color: #666; margin-top: 20px;">Showing first ${displayLimit} of ${articlesToShow.length} results. Refine your search to see more.</p>`;
+            }
+            
+            container.innerHTML = tempDiv.innerHTML;
         }
         
         function highlightText(text, query) {
