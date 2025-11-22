@@ -74,6 +74,33 @@
             background-color: #ffeb3b;
             padding: 2px 4px;
         }
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            flex-direction: column;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: #666;
+            font-size: 16px;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -84,9 +111,12 @@
         <div class="results-count" id="results-count"></div>
     </div>
     
-    <div id="article-list" class="article-list">
-        <p style="text-align: center; color: #666;">Loading articles...</p>
+    <div id="loading-spinner" class="loading-spinner">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading articles...</div>
     </div>
+    
+    <div id="article-list" class="article-list hidden"></div>
 
     <script>
         let idx;
@@ -118,13 +148,19 @@
                 const buildTime = performance.now() - startTime;
                 console.log(`Index built in ${buildTime.toFixed(2)}ms`);
                 
+                // Hide loading spinner and show article list
+                document.getElementById('loading-spinner').classList.add('hidden');
+                document.getElementById('article-list').classList.remove('hidden');
+                
                 // Display first 50 articles initially (for performance)
                 displayArticles(articles.slice(0, 50));
             })
             .catch(error => {
                 console.error('Error loading articles:', error);
+                document.getElementById('loading-spinner').classList.add('hidden');
+                document.getElementById('article-list').classList.remove('hidden');
                 document.getElementById('article-list').innerHTML = 
-                    '<p>Error loading articles. Make sure articles-index.json exists. Run generate-index.py first.</p>';
+                    '<p style="text-align: center; color: #e74c3c;">Error loading articles. Make sure articles-index.json exists. Run generate-index.py first.</p>';
             });
         
         // Debounce function for performance
