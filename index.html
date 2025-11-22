@@ -78,15 +78,16 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 40px;
+            padding: 60px 40px;
             flex-direction: column;
+            min-height: 200px;
         }
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
+            width: 60px;
+            height: 60px;
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
         }
@@ -123,6 +124,12 @@
         let articles = [];
         let indexBuilt = false;
         
+        // Show loading spinner immediately
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const articleList = document.getElementById('article-list');
+        loadingSpinner.style.display = 'flex';
+        articleList.style.display = 'none';
+        
         // Load the article index
         fetch('articles-index.json')
             .then(response => response.json())
@@ -149,17 +156,17 @@
                 console.log(`Index built in ${buildTime.toFixed(2)}ms`);
                 
                 // Hide loading spinner and show article list
-                document.getElementById('loading-spinner').classList.add('hidden');
-                document.getElementById('article-list').classList.remove('hidden');
+                loadingSpinner.style.display = 'none';
+                articleList.style.display = 'grid';
                 
                 // Display first 50 articles initially (for performance)
                 displayArticles(articles.slice(0, 50));
             })
             .catch(error => {
                 console.error('Error loading articles:', error);
-                document.getElementById('loading-spinner').classList.add('hidden');
-                document.getElementById('article-list').classList.remove('hidden');
-                document.getElementById('article-list').innerHTML = 
+                loadingSpinner.style.display = 'none';
+                articleList.style.display = 'block';
+                articleList.innerHTML = 
                     '<p style="text-align: center; color: #e74c3c;">Error loading articles. Make sure articles-index.json exists. Run generate-index.py first.</p>';
             });
         
