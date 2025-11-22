@@ -64,6 +64,12 @@
         .article-link:hover {
             text-decoration: underline;
         }
+        .content-snippet {
+            color: #666;
+            font-size: 0.9em;
+            margin: 10px 0;
+            line-height: 1.5;
+        }
         mark {
             background-color: #ffeb3b;
             padding: 2px 4px;
@@ -74,7 +80,7 @@
     <h1>Tortilla con Sal - Articles</h1>
     
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="Search articles...">
+        <input type="text" id="search-input" placeholder="Search articles by title or content...">
         <div class="results-count" id="results-count"></div>
     </div>
     
@@ -143,12 +149,33 @@
             
             countEl.textContent = `${articlesToShow.length} article${articlesToShow.length !== 1 ? 's' : ''} found`;
             
-            container.innerHTML = articlesToShow.map(article => `
+            container.innerHTML = articlesToShow.map(article => {
+                // Show content snippet if searching
+                let contentSnippet = '';
+                if (searchQuery && article.content) {
+                    const queryLower = searchQuery.toLowerCase();
+                    const contentLower = article.content.toLowerCase();
+                    const matchIndex = contentLower.indexOf(queryLower);
+                    
+                    if (matchIndex !== -1) {
+                        // Get snippet around the match (100 chars before and after)
+                        const start = Math.max(0, matchIndex - 100);
+                        const end = Math.min(article.content.length, matchIndex + searchQuery.length + 100);
+                        let snippet = article.content.substring(start, end);
+                        if (start > 0) snippet = '...' + snippet;
+                        if (end < article.content.length) snippet = snippet + '...';
+                        contentSnippet = `<p class="content-snippet">${highlightText(snippet, searchQuery)}</p>`;
+                    }
+                }
+                
+                return `
                 <div class="article-item">
                     <h3><a href="${article.path}">${highlightText(article.title, searchQuery)}</a></h3>
+                    ${contentSnippet}
                     <p><a href="${article.path}" class="article-link">Read article →</a></p>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
         
         function highlightText(text, query) {
