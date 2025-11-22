@@ -1,0 +1,7 @@
+_site/
+.quarto/
+.venv/
+
+/.quarto/
+**/*.quarto_ipynb
+# articles-index.json - commented out for MVP, will be generated in CI later
