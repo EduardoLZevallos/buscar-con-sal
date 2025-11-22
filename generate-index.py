@@ -78,6 +78,23 @@ def main():
     print("Scanning HTML files...")
     html_files = sorted(articles_dir.glob('*.html'))
     
+    # Filter out pagination/index files
+    def should_include_file(filename):
+        """Filter out pagination and index files"""
+        name = filename.name
+        # Exclude files with ?page= in the name (pagination)
+        if '?page=' in name:
+            return False
+        # Exclude index.html files
+        if name == 'index.html':
+            return False
+        # Exclude node, activity, tracker files (these are index pages)
+        if name in ['node.html', 'activity.html', 'tracker.html']:
+            return False
+        return True
+    
+    html_files = [f for f in html_files if should_include_file(f)]
+    
     for html_file in html_files:
         title = extract_title_from_html(html_file)
         content = extract_text_from_html(html_file)
