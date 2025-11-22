@@ -1,3 +1,4 @@
 _site/
 .venv/
 articles-index.json
+pdfs/
