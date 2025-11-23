@@ -186,36 +186,34 @@
             .then(data => {
                 articles = data;
                 
-                // Build Lunr index (optimized - build once, reuse)
-                const startTime = performance.now();
-                idx = lunr(function() {
-                    this.ref('id');
-                    this.field('title', { boost: 10 });
-                    this.field('content');
-                    
-                    articles.forEach((article, index) => {
-                        this.add({
-                            id: index,
-                            title: article.title,
-                            content: article.content
-                        });
-                    });
-                });
-                indexBuilt = true;
-                const buildTime = performance.now() - startTime;
-                console.log(`Index built in ${buildTime.toFixed(2)}ms`);
-                
-                // Hide loading spinner and show article list
-                loadingSpinner.style.display = 'none';
-                articleList.style.display = 'grid';
-                
                 // Sort articles by date (latest first) once and cache it
                 sortedArticles = [...articles].sort((a, b) => {
                     const dateA = a.date || '0000-00-00'; // Put articles without dates at the end
                     const dateB = b.date || '0000-00-00';
                     return dateB.localeCompare(dateA); // Reverse order: latest first
                 });
+                
+                // Show articles IMMEDIATELY - don't wait for index build
+                loadingSpinner.style.display = 'none';
+                articleList.style.display = 'grid';
                 displayArticles(sortedArticles.slice(0, 30), '', articles.length);
+                
+                // Load pre-built index asynchronously (non-blocking)
+                // This is much faster than building client-side
+                fetch('lunr-index.json')
+                    .then(response => response.json())
+                    .then(indexData => {
+                        const startTime = performance.now();
+                        idx = lunr.Index.load(indexData);
+                        indexBuilt = true;
+                        const loadTime = performance.now() - startTime;
+                        console.log(`Pre-built search index loaded: ${loadTime.toFixed(2)}ms`);
+                    })
+                    .catch(() => {
+                        // Fallback: build index in chunks to avoid blocking
+                        console.log('Pre-built index not found, building client-side in chunks...');
+                        buildIndexInChunks();
+                    });
             })
             .catch(error => {
                 console.error('Error loading articles:', error);
@@ -238,11 +236,61 @@
             };
         }
         
+        // Build index in chunks to avoid blocking UI
+        function buildIndexInChunks() {
+            idx = lunr(function() {
+                this.ref('id');
+                this.field('title', { boost: 10 });
+                this.field('content');
+            });
+            
+            // Add articles in chunks with breaks to avoid blocking
+            let currentIndex = 0;
+            const chunkSize = 500;
+            
+            const addChunk = () => {
+                const endIndex = Math.min(currentIndex + chunkSize, articles.length);
+                for (let i = currentIndex; i < endIndex; i++) {
+                    idx.add({
+                        id: i,
+                        title: articles[i].title,
+                        content: articles[i].content
+                    });
+                }
+                currentIndex = endIndex;
+                
+                if (currentIndex < articles.length) {
+                    // Use setTimeout to yield to browser
+                    setTimeout(addChunk, 10);
+                } else {
+                    indexBuilt = true;
+                    console.log('Search index built in chunks');
+                }
+            };
+            
+            addChunk();
+        }
+        
         // Optimized search function
         function performSearch(query) {
             if (!indexBuilt) {
-                // Wait for index to be built
-                setTimeout(() => performSearch(query), 100);
+                // Use fast text search while index is loading/building
+                const queryLower = query.toLowerCase();
+                const filtered = articles.filter(article => {
+                    const titleLower = article.title.toLowerCase();
+                    const contentLower = article.content.toLowerCase();
+                    return titleLower.includes(queryLower) || contentLower.includes(queryLower);
+                });
+                displayArticles(filtered, query, filtered.length);
+                
+                // Retry with full index once it's ready (only if still searching)
+                if (query.length > 0) {
+                    setTimeout(() => {
+                        if (indexBuilt) {
+                            performSearch(query);
+                        }
+                    }, 1000);
+                }
                 return;
             }
             
