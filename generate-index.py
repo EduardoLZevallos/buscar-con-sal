@@ -1,16 +1,18 @@
 # /// script
 # dependencies = [
 #   "beautifulsoup4",
+#   "lunr",
 # ]
 # ///
 """
-Generate articles-index.json for Lunr.js search
+Generate articles-index.json and pre-built Lunr index for faster loading
 """
 import os
 import json
 import re
 from pathlib import Path
 from bs4 import BeautifulSoup
+from lunr import lunr
 
 def extract_text_from_html(html_file):
     """Extract text content from HTML file"""
@@ -26,9 +28,9 @@ def extract_text_from_html(html_file):
         text = soup.get_text()
         # Clean up whitespace
         text = re.sub(r'\s+', ' ', text).strip()
-        # Limit to first 3000 chars for indexing (optimized for performance)
-        # 3000 chars (~500 words) is sufficient for search while keeping file size small
-        return text[:3000]
+        # Limit to first 2000 chars for indexing (optimized for performance with 8000+ articles)
+        # 2000 chars (~330 words) is sufficient for search while keeping file size manageable
+        return text[:2000]
     except Exception as e:
         print(f"Error processing {html_file}: {e}")
         return ""
@@ -115,11 +117,37 @@ def main():
         if len(articles) % 100 == 0:
             print(f"  Processed {len(articles)}/{len(html_files)} files...")
     
-    # Save index (compact JSON for smaller file size)
+    # Save articles index (compact JSON for smaller file size)
     with open('articles-index.json', 'w', encoding='utf-8') as f:
         json.dump(articles, f, separators=(',', ':'), ensure_ascii=False)
     
-    print(f"\n✓ Generated articles-index.json with {len(articles)} articles")
+    print(f"✓ Generated articles-index.json with {len(articles)} articles")
+    
+    # Pre-build Lunr index for faster client-side loading
+    print("Building Lunr search index...")
+    idx = lunr(
+        ref='id',
+        fields=[
+            {'field_name': 'title', 'boost': 10},
+            {'field_name': 'content'}
+        ],
+        documents=[
+            {
+                'id': str(i),
+                'title': article['title'],
+                'content': article['content']
+            }
+            for i, article in enumerate(articles)
+        ]
+    )
+    
+    # Serialize and save the index
+    index_serialized = idx.serialize()
+    with open('lunr-index.json', 'w', encoding='utf-8') as f:
+        json.dump(index_serialized, f, separators=(',', ':'), ensure_ascii=False)
+    
+    print(f"✓ Generated pre-built lunr-index.json")
+    print(f"\nTotal size: articles-index.json + lunr-index.json")
 
 if __name__ == '__main__':
     main()

@@ -30,7 +30,7 @@ echo "============================================================"
 git status --short
 
 # Check if there are changes
-if [ -z "$(git status --porcelain articles/ articles-index.json)" ]; then
+if [ -z "$(git status --porcelain articles/ articles-index.json lunr-index.json)" ]; then
     echo ""
     echo "✓ No changes to commit. Everything is up to date!"
     exit 0
@@ -41,7 +41,7 @@ echo ""
 echo "============================================================"
 echo "Step 4: Staging changes"
 echo "============================================================"
-git add articles/ articles-index.json
+git add articles/ articles-index.json lunr-index.json
 
 # Step 5: Commit
 echo ""

@@ -153,7 +153,7 @@
     </div>
     
     <div class="description">
-        Search through articles from Tortilla con Sal by title or content. Full-text search across 1,000+ articles.
+        Search through articles from Tortilla con Sal by title or content. Full-text search across 8,000+ articles.
     </div>
     
     <div class="search-container">
@@ -215,7 +215,7 @@
                     const dateB = b.date || '0000-00-00';
                     return dateB.localeCompare(dateA); // Reverse order: latest first
                 });
-                displayArticles(sortedArticles.slice(0, 50), '', articles.length);
+                displayArticles(sortedArticles.slice(0, 30), '', articles.length);
             })
             .catch(error => {
                 console.error('Error loading articles:', error);
@@ -248,7 +248,7 @@
             
             if (query.length === 0) {
                 // Use cached sorted articles (sorted once on load)
-                displayArticles(sortedArticles.slice(0, 50), '', articles.length);
+                displayArticles(sortedArticles.slice(0, 30), '', articles.length);
                 return;
             }
             
@@ -287,8 +287,8 @@
             displayArticles(filteredArticles, query, filteredArticles.length);
         }
         
-        // Search functionality with debouncing (300ms delay)
-        const debouncedSearch = debounce(performSearch, 300);
+        // Search functionality with debouncing (400ms delay for better performance with large datasets)
+        const debouncedSearch = debounce(performSearch, 400);
         document.getElementById('search-input').addEventListener('input', function(e) {
             const query = e.target.value.trim();
             debouncedSearch(query);
@@ -315,8 +315,8 @@
                 countEl.textContent = `${articlesToShow.length} article${articlesToShow.length !== 1 ? 's' : ''} found`;
             }
             
-            // Limit display to first 100 results for performance
-            const displayLimit = 100;
+            // Limit display to first 50 results for performance (reduced from 100 for 8000+ articles)
+            const displayLimit = 50;
             const articlesToDisplay = articlesToShow.slice(0, displayLimit);
             const hasMore = articlesToShow.length > displayLimit;
             
@@ -348,9 +348,9 @@
                     const matchIndex = contentLower.indexOf(queryLower);
                     
                     if (matchIndex !== -1) {
-                        // Get snippet around the match (80 chars before and after for performance)
-                        const start = Math.max(0, matchIndex - 80);
-                        const end = Math.min(article.content.length, matchIndex + searchQuery.length + 80);
+                        // Get snippet around the match (60 chars before and after for performance)
+                        const start = Math.max(0, matchIndex - 60);
+                        const end = Math.min(article.content.length, matchIndex + searchQuery.length + 60);
                         let snippet = article.content.substring(start, end);
                         if (start > 0) snippet = '...' + snippet;
                         if (end < article.content.length) snippet = snippet + '...';
