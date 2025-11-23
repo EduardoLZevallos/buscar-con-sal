@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "beautifulsoup4",
+# ]
+# ///
 """
 Generate articles-index.json for Lunr.js search
 """
